@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Block Pop</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0; min-height: 100vh; padding: 20px 12px;
+  background: #101426; color: #fff;
+  font-family: system-ui, sans-serif;
+  display: flex; justify-content: center;
+}
+.app { width: min(440px, 100%); text-align: center; }
+h1 { margin: 8px 0; font-size: 38px; letter-spacing: -1px; }
+h1 span { color: #a78bfa; }
+.subtitle { color: #aab4d0; margin: 0 0 18px; }
+.stats { display: flex; gap: 10px; margin-bottom: 14px; }
+.stat {
+  flex: 1; background: #1b2340; padding: 10px;
+  border-radius: 14px; border: 1px solid #303957;
+}
+.stat small { display: block; color: #aab4d0; font-size: 11px; }
+.stat strong { font-size: 24px; }
+.board {
+  display: grid; grid-template-columns: repeat(10, 1fr);
+  gap: 4px; padding: 7px; background: #1b2340;
+  border: 1px solid #303957; border-radius: 13px;
+  width: 100%; aspect-ratio: 1;
+}
+.cell {
+  min-width: 0; min-height: 0; border-radius: 4px;
+  background: #29314e; border: 1px solid #343d5c;
+}
+.cell.filled { border: 1px solid #ffffff35; }
+.pieces {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 8px; margin-top: 20px;
+}
+.piece {
+  height: 112px; display: flex; align-items: center;
+  justify-content: center; border-radius: 14px;
+  background: #1b2340; border: 2px solid transparent;
+  cursor: pointer; touch-action: manipulation;
+}
+.piece.selected { border-color: #a78bfa; background: #29284c; }
+.mini {
+  display: grid; gap: 3px;
+}
+.mini-cell { width: 19px; height: 19px; border-radius: 4px; }
+.mini-cell.empty { visibility: hidden; }
+button {
+  border: 0; border-radius: 12px; padding: 12px 18px;
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+#restart { margin-top: 16px; background: #a78bfa; color: #17152b; }
+#message { min-height: 24px; margin: 12px 0 0; color: #c7d2fe; }
+.help { font-size: 12px; color: #8e9ab9; margin-top: 14px; }
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>BLOCK <span>POP</span></h1>
+  <p class="subtitle">Place blocks. Clear lines. Beat your best!</p>
+
+  <div class="stats">
+    <div class="stat"><small>SCORE</small><strong id="score">0</strong></div>
+    <div class="stat"><small>BEST</small><strong id="best">0</strong></div>
+  </div>
+
+  <div class="board" id="board"></div>
+  <div class="pieces" id="pieces"></div>
+  <p id="message">Choose a piece, then tap a spot on the board.</p>
+  <button id="restart">↻ New Game</button>
+  <p class="help">Clear a full row or column to earn points.</p>
+</main>
+
+<script>
+const SIZE = 10;
+const COLORS = ["#ff647c","#ffb454","#ffe16a","#65dfb3","#5fc9ff","#a78bfa"];
+const SHAPES = [
+  [[0,0]],
+  [[0,0],[0,1]],
+  [[0,0],[1,0]],
+  [[0,0],[0,1],[0,2]],
+  [[0,0],[1,0],[2,0]],
+  [[0,0],[0,1],[1,0],[1,1]],
+  [[0,0],[0,1],[0,2],[1,1]],
+  [[0,0],[1,0],[2,0],[2,1]],
+  [[0,0],[1,0],[1,1],[2,1]],
+  [[0,0],[0,1],[0,2],[0,3]],
+  [[0,0],[1,0],[2,0],[3,0]],
+  [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
+  [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],
+  [[0,0],[0,1],[0,2],[1,2],[2,2]]
+];
+
+const boardEl = document.getElementById("board");
+const piecesEl = document.getElementById("pieces");
+const scoreEl = document.getElementById("score");
+const bestEl = document.getElementById("best");
+const messageEl = document.getElementById("message");
+
+let grid, pieces, selected, score, best;
+try { best = Number(localStorage.getItem("blockPopBest")) || 0; }
+catch(e) { best = 0; }
+bestEl.textContent = best;
+
+function randomColor() {
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
+}
+
+function makePiece() {
+  return {
+    shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
+    color: randomColor()
+  };
+}
+
+function newGame() {
+  grid = Array.from({length:SIZE}, () => Array(SIZE).fill(null));
+  pieces = [makePiece(), makePiece(), makePiece()];
+  selected = 0;
+  score = 0;
+  scoreEl.textContent = score;
+  messageEl.textContent = "Choose a piece, then tap a spot on the board.";
+  render();
+}
+
+function render() {
+  boardEl.innerHTML = "";
+  for(let r=0;r<SIZE;r++) {
+    for(let c=0;c<SIZE;c++) {
+      const cell = document.createElement("div");
+      cell.className = "cell" + (grid[r][c] ? " filled" : "");
+      if(grid[r][c]) cell.style.background = grid[r][c];
+      cell.addEventListener("click", () => placePiece(r,c));
+      boardEl.appendChild(cell);
+    }
+  }
+
+  piecesEl.innerHTML = "";
+  pieces.forEach((piece,i) => {
+    const box = document.createElement("div");
+    box.className = "piece" + (selected === i ? " selected" : "");
+    if(!piece) {
+      box.style.opacity = ".2";
+      piecesEl.appendChild(box);
+      return;
+    }
+    const maxR = Math.max(...piece.shape.map(p=>p[0]))+1;
+    const maxC = Math.max(...piece.shape.map(p=>p[1]))+1;
+    const mini = document.createElement("div");
+    mini.className = "mini";
+    mini.style.gridTemplateColumns = `repeat(${maxC},19px)`;
+    for(let r=0;r<maxR;r++) {
+      for(let c=0;c<maxC;c++) {
+        const square = document.createElement("div");
+        square.className = "mini-cell";
+        if(piece.shape.some(p=>p[0]===r && p[1]===c)) {
+          square.style.background = piece.color;
+        } else square.classList.add("empty");
+        mini.appendChild(square);
+      }
+    }
+    box.appendChild(mini);
+    box.addEventListener("click", () => {
+      selected = i;
+      messageEl.textContent = "Now tap a place on the board.";
+      render();
+    });
+    piecesEl.appendChild(box);
+  });
+}
+
+function canPlace(shape,r,c) {
+  return shape.every(([dr,dc]) => {
+    const nr=r+dr, nc=c+dc;
+    return nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && !grid[nr][nc];
+  });
+}
+
+function placePiece(r,c) {
+  const piece = pieces[selected];
+  if(!piece) {
+    messageEl.textContent = "Choose an available piece first.";
+    return;
+  }
+  if(!canPlace(piece.shape,r,c)) {
+    messageEl.textContent = "That spot is blocked. Try another!";
+    return;
+  }
+
+  for(const [dr,dc] of piece.shape) {
+    grid[r+dr][c+dc] = piece.color;
+  }
+  score += piece.shape.length;
+  pieces[selected] = null;
+
+  const fullRows = [];
+  const fullCols = [];
+  for(let i=0;i<SIZE;i++) {
+    if(grid[i].every(Boolean)) fullRows.push(i);
+    if(grid.every(row=>row[i])) fullCols.push(i);
+  }
+
+  for(const r2 of fullRows) {
+    for(let c2=0;c2<SIZE;c2++) grid[r2][c2]=null;
+  }
+  for(const c2 of fullCols) {
+    for(let r2=0;r2<SIZE;r2++) grid[r2][c2]=null;
+  }
+  score += (fullRows.length+fullCols.length)*10;
+  scoreEl.textContent = score;
+
+  if(score>best) {
+    best=score;
+    bestEl.textContent=best;
+    try { localStorage.setItem("blockPopBest",best); } catch(e) {}
+  }
+
+  if(pieces.every(p=>!p)) {
+    pieces=[makePiece(),makePiece(),makePiece()];
+    selected=0;
+  } else if(!pieces[selected]) {
+    selected=pieces.findIndex(p=>p);
+  }
+
+  render();
+
+  const cleared=fullRows.length+fullCols.length;
+  messageEl.textContent = cleared
+    ? `Nice! ${cleared} line${cleared>1?"s":""} cleared!`
+    : "Good move! Keep filling the board.";
+
+  if(!pieces.some(p=>p && hasAnyMove(p))) {
+    messageEl.textContent = "Game over! Tap New Game to play again.";
+    pieces=[null,null,null];
+    render();
+  }
+}
+
+function hasAnyMove(piece) {
+  for(let r=0;r<SIZE;r++)
+    for(let c=0;c<SIZE;c++)
+      if(canPlace(piece.shape,r,c)) return true;
+  return false;
+}
+
+document.getElementById("restart").addEventListener("click",newGame);
+newGame();
+</script>
+</body>
+</html>
