@@ -3,254 +3,190 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Block Pop</title>
 <style>
-* { box-sizing: border-box; }
-body {
-  margin: 0; min-height: 100vh; padding: 20px 12px;
-  background: #101426; color: #fff;
-  font-family: system-ui, sans-serif;
-  display: flex; justify-content: center;
-}
-.app { width: min(440px, 100%); text-align: center; }
-h1 { margin: 8px 0; font-size: 38px; letter-spacing: -1px; }
-h1 span { color: #a78bfa; }
-.subtitle { color: #aab4d0; margin: 0 0 18px; }
-.stats { display: flex; gap: 10px; margin-bottom: 14px; }
-.stat {
-  flex: 1; background: #1b2340; padding: 10px;
-  border-radius: 14px; border: 1px solid #303957;
-}
-.stat small { display: block; color: #aab4d0; font-size: 11px; }
-.stat strong { font-size: 24px; }
-.board {
-  display: grid; grid-template-columns: repeat(10, 1fr);
-  gap: 4px; padding: 7px; background: #1b2340;
-  border: 1px solid #303957; border-radius: 13px;
-  width: 100%; aspect-ratio: 1;
-}
-.cell {
-  min-width: 0; min-height: 0; border-radius: 4px;
-  background: #29314e; border: 1px solid #343d5c;
-}
-.cell.filled { border: 1px solid #ffffff35; }
-.pieces {
-  display: grid; grid-template-columns: repeat(3,1fr);
-  gap: 8px; margin-top: 20px;
-}
-.piece {
-  height: 112px; display: flex; align-items: center;
-  justify-content: center; border-radius: 14px;
-  background: #1b2340; border: 2px solid transparent;
-  cursor: pointer; touch-action: manipulation;
-}
-.piece.selected { border-color: #a78bfa; background: #29284c; }
-.mini {
-  display: grid; gap: 3px;
-}
-.mini-cell { width: 19px; height: 19px; border-radius: 4px; }
-.mini-cell.empty { visibility: hidden; }
-button {
-  border: 0; border-radius: 12px; padding: 12px 18px;
-  font: inherit; font-weight: 700; cursor: pointer;
-}
-#restart { margin-top: 16px; background: #a78bfa; color: #17152b; }
-#message { min-height: 24px; margin: 12px 0 0; color: #c7d2fe; }
-.help { font-size: 12px; color: #8e9ab9; margin-top: 14px; }
+*{box-sizing:border-box}
+body{margin:0;background:#10152b;color:white;font-family:Arial,sans-serif;text-align:center;touch-action:pan-y}
+h1{margin:18px 0 5px;color:#7cf7d4;font-size:34px}
+.subtitle{color:#aab6d8;margin:0 0 14px}
+.stats{display:flex;justify-content:center;gap:35px;margin:12px}
+.stat{font-size:14px;color:#b9c6e9}
+.stat strong{display:block;font-size:25px;color:white;margin-top:4px}
+#board{width:min(92vw,430px);aspect-ratio:1;margin:15px auto;display:grid;grid-template-columns:repeat(10,1fr);gap:4px;background:#202945;padding:6px;border-radius:12px;touch-action:none;user-select:none}
+.cell{background:#303b5b;border-radius:4px;min-width:0;min-height:0}
+.cell.filled{background:var(--c);box-shadow:inset 0 -3px #0002}
+.cell.preview{background:#75f4d0!important;box-shadow:inset 0 0 0 2px white}
+.cell.invalid{background:#ff6278!important}
+#pieces{display:flex;justify-content:space-evenly;align-items:center;gap:8px;width:min(95vw,450px);margin:20px auto}
+.piece{width:30%;height:100px;display:flex;justify-content:center;align-items:center;border:2px solid #303b5b;border-radius:12px;background:#1a213b;touch-action:none;user-select:none}
+.piece.selected{border-color:#7cf7d4;background:#263858}
+.mini{display:grid;gap:4px;pointer-events:none}
+.mini-cell{width:22px;height:22px;border-radius:4px;background:var(--c)}
+.mini-cell.empty{visibility:hidden}
+#message{min-height:24px;color:#7cf7d4;font-size:14px}
+button{border:0;border-radius:10px;background:#7cf7d4;color:#10152b;font-weight:bold;padding:12px 22px;font-size:16px;margin-bottom:20px}
+#dragGhost{position:fixed;z-index:10;pointer-events:none;display:none;grid-template-columns:repeat(5,22px);grid-auto-rows:22px;gap:3px;transform:translate(-50%,-50%)}
+.ghost-cell{border-radius:4px;background:#7cf7d4;opacity:.9}
+.ghost-cell.empty{visibility:hidden}
 </style>
 </head>
 <body>
-<main class="app">
-  <h1>BLOCK <span>POP</span></h1>
-  <p class="subtitle">Place blocks. Clear lines. Beat your best!</p>
-
-  <div class="stats">
-    <div class="stat"><small>SCORE</small><strong id="score">0</strong></div>
-    <div class="stat"><small>BEST</small><strong id="best">0</strong></div>
-  </div>
-
-  <div class="board" id="board"></div>
-  <div class="pieces" id="pieces"></div>
-  <p id="message">Choose a piece, then tap a spot on the board.</p>
-  <button id="restart">↻ New Game</button>
-  <p class="help">Clear a full row or column to earn points.</p>
-</main>
+<h1>BLOCK POP</h1>
+<p class="subtitle">Drag blocks onto the board!</p>
+<div class="stats">
+<div class="stat">SCORE<strong id="score">0</strong></div>
+<div class="stat">BEST<strong id="best">0</strong></div>
+</div>
+<div id="board"></div>
+<div id="message">Grab a block and drag it onto the grid.</div>
+<div id="pieces"></div>
+<div id="dragGhost"></div>
+<button id="restart">↻ Restart Game</button>
 
 <script>
-const SIZE = 10;
-const COLORS = ["#ff647c","#ffb454","#ffe16a","#65dfb3","#5fc9ff","#a78bfa"];
-const SHAPES = [
-  [[0,0]],
-  [[0,0],[0,1]],
-  [[0,0],[1,0]],
-  [[0,0],[0,1],[0,2]],
-  [[0,0],[1,0],[2,0]],
-  [[0,0],[0,1],[1,0],[1,1]],
-  [[0,0],[0,1],[0,2],[1,1]],
-  [[0,0],[1,0],[2,0],[2,1]],
-  [[0,0],[1,0],[1,1],[2,1]],
-  [[0,0],[0,1],[0,2],[0,3]],
-  [[0,0],[1,0],[2,0],[3,0]],
-  [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],
-  [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]],
-  [[0,0],[0,1],[0,2],[1,2],[2,2]]
+const N=10;
+const boardEl=document.getElementById('board');
+const piecesEl=document.getElementById('pieces');
+const messageEl=document.getElementById('message');
+const scoreEl=document.getElementById('score');
+const bestEl=document.getElementById('best');
+const ghost=document.getElementById('dragGhost');
+const colors=['#55d9ff','#ffca5c','#ff7198','#a68bff','#70e6a4','#ff9368'];
+const shapes=[
+[[0,0]],
+[[0,0],[0,1]],
+[[0,0],[0,1],[0,2]],
+[[0,0],[1,0],[1,1]],
+[[0,0],[0,1],[1,0],[1,1]],
+[[0,0],[1,0],[2,0],[2,1]],
+[[0,0],[0,1],[0,2],[1,1]],
+[[0,0],[0,1],[0,2],[0,3]],
+[[0,0],[1,0],[2,0]],
+[[0,0],[1,0],[2,0],[3,0]],
+[[0,0],[0,1],[0,2],[0,3],[0,4]],
+[[0,0],[1,0],[1,1],[2,1]],
+[[0,0],[1,0],[2,0],[3,0],[4,0]],
+[[0,0],[1,0],[2,0],[0,1],[1,1],[2,1]]
 ];
-
-const boardEl = document.getElementById("board");
-const piecesEl = document.getElementById("pieces");
-const scoreEl = document.getElementById("score");
-const bestEl = document.getElementById("best");
-const messageEl = document.getElementById("message");
-
-let grid, pieces, selected, score, best;
-try { best = Number(localStorage.getItem("blockPopBest")) || 0; }
-catch(e) { best = 0; }
-bestEl.textContent = best;
-
-function randomColor() {
-  return COLORS[Math.floor(Math.random() * COLORS.length)];
+let grid, pieces, score, best, drag=null, previewCells=[];
+function init(){
+ grid=Array.from({length:N},()=>Array(N).fill(null));
+ score=0;best=Number(localStorage.getItem('blockpopbest')||0);
+ pieces=[newPiece(),newPiece(),newPiece()];
+ messageEl.textContent='Grab a block and drag it onto the grid.';
+ render();
 }
-
-function makePiece() {
-  return {
-    shape: SHAPES[Math.floor(Math.random() * SHAPES.length)],
-    color: randomColor()
-  };
+function newPiece(){
+ let shape=shapes[Math.floor(Math.random()*shapes.length)];
+ return {shape:shape.map(p=>[...p]),color:colors[Math.floor(Math.random()*colors.length)]};
 }
-
-function newGame() {
-  grid = Array.from({length:SIZE}, () => Array(SIZE).fill(null));
-  pieces = [makePiece(), makePiece(), makePiece()];
-  selected = 0;
-  score = 0;
-  scoreEl.textContent = score;
-  messageEl.textContent = "Choose a piece, then tap a spot on the board.";
-  render();
+function render(){
+ boardEl.innerHTML='';
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+  const el=document.createElement('div');el.className='cell';
+  if(grid[r][c]){el.classList.add('filled');el.style.setProperty('--c',grid[r][c]);}
+  el.dataset.r=r;el.dataset.c=c;boardEl.appendChild(el);
+ }
+ piecesEl.innerHTML='';
+ pieces.forEach((p,i)=>{
+  const slot=document.createElement('div');slot.className='piece';slot.dataset.i=i;
+  if(p){
+   const maxR=Math.max(...p.shape.map(a=>a[0]))+1,maxC=Math.max(...p.shape.map(a=>a[1]))+1;
+   const mini=document.createElement('div');mini.className='mini';
+   mini.style.gridTemplateColumns=`repeat(${maxC},22px)`;
+   mini.style.gridTemplateRows=`repeat(${maxR},22px)`;
+   for(let r=0;r<maxR;r++)for(let c=0;c<maxC;c++){
+    const b=document.createElement('div');b.className='mini-cell'+(p.shape.some(a=>a[0]===r&&a[1]===c)?'':' empty');
+    b.style.setProperty('--c',p.color);mini.appendChild(b);
+   }
+   slot.appendChild(mini);
+   slot.addEventListener('pointerdown',e=>startDrag(e,i));
+  }
+  piecesEl.appendChild(slot);
+ });
+ scoreEl.textContent=score;bestEl.textContent=best;
 }
-
-function render() {
-  boardEl.innerHTML = "";
-  for(let r=0;r<SIZE;r++) {
-    for(let c=0;c<SIZE;c++) {
-      const cell = document.createElement("div");
-      cell.className = "cell" + (grid[r][c] ? " filled" : "");
-      if(grid[r][c]) cell.style.background = grid[r][c];
-      cell.addEventListener("click", () => placePiece(r,c));
-      boardEl.appendChild(cell);
-    }
-  }
-
-  piecesEl.innerHTML = "";
-  pieces.forEach((piece,i) => {
-    const box = document.createElement("div");
-    box.className = "piece" + (selected === i ? " selected" : "");
-    if(!piece) {
-      box.style.opacity = ".2";
-      piecesEl.appendChild(box);
-      return;
-    }
-    const maxR = Math.max(...piece.shape.map(p=>p[0]))+1;
-    const maxC = Math.max(...piece.shape.map(p=>p[1]))+1;
-    const mini = document.createElement("div");
-    mini.className = "mini";
-    mini.style.gridTemplateColumns = `repeat(${maxC},19px)`;
-    for(let r=0;r<maxR;r++) {
-      for(let c=0;c<maxC;c++) {
-        const square = document.createElement("div");
-        square.className = "mini-cell";
-        if(piece.shape.some(p=>p[0]===r && p[1]===c)) {
-          square.style.background = piece.color;
-        } else square.classList.add("empty");
-        mini.appendChild(square);
-      }
-    }
-    box.appendChild(mini);
-    box.addEventListener("click", () => {
-      selected = i;
-      messageEl.textContent = "Now tap a place on the board.";
-      render();
-    });
-    piecesEl.appendChild(box);
-  });
+function startDrag(e,i){
+ if(!pieces[i])return;
+ e.preventDefault();
+ drag={i,piece:pieces[i],x:e.clientX,y:e.clientY};
+ document.querySelectorAll('.piece')[i].classList.add('selected');
+ ghost.style.display='grid';
+ ghost.innerHTML='';
+ const maxR=Math.max(...drag.piece.shape.map(p=>p[0]))+1;
+ const maxC=Math.max(...drag.piece.shape.map(p=>p[1]))+1;
+ ghost.style.gridTemplateColumns=`repeat(${maxC},22px)`;
+ ghost.style.gridTemplateRows=`repeat(${maxR},22px)`;
+ for(let r=0;r<maxR;r++)for(let c=0;c<maxC;c++){
+  const b=document.createElement('div');
+  b.className='ghost-cell'+(drag.piece.shape.some(p=>p[0]===r&&p[1]===c)?'':' empty');
+  b.style.background=drag.piece.color;ghost.appendChild(b);
+ }
+ moveDrag(e);
 }
-
-function canPlace(shape,r,c) {
-  return shape.every(([dr,dc]) => {
-    const nr=r+dr, nc=c+dc;
-    return nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && !grid[nr][nc];
-  });
+function clearPreview(){
+ previewCells.forEach(el=>el.classList.remove('preview','invalid'));
+ previewCells=[];
 }
-
-function placePiece(r,c) {
-  const piece = pieces[selected];
-  if(!piece) {
-    messageEl.textContent = "Choose an available piece first.";
-    return;
+function moveDrag(e){
+ if(!drag)return;
+ drag.x=e.clientX;drag.y=e.clientY;
+ ghost.style.left=e.clientX+'px';ghost.style.top=(e.clientY-65)+'px';
+ clearPreview();
+ const rect=boardEl.getBoundingClientRect();
+ if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)return;
+ const cellW=rect.width/N,cellH=rect.height/N;
+ const c=Math.floor((e.clientX-rect.left)/cellW);
+ const r=Math.floor((e.clientY-rect.top)/cellH);
+ const minR=Math.min(...drag.piece.shape.map(p=>p[0]));
+ const minC=Math.min(...drag.piece.shape.map(p=>p[1]));
+ const originR=r-minR,originC=c-minC;
+ const valid=canPlace(drag.piece,originR,originC);
+ drag.target=valid?{r:originR,c:originC}:null;
+ drag.piece.shape.forEach(([dr,dc])=>{
+  const rr=originR+dr,cc=originC+dc;
+  if(rr>=0&&rr<N&&cc>=0&&cc<N){
+   const el=boardEl.children[rr*N+cc];
+   el.classList.add(valid?'preview':'invalid');previewCells.push(el);
   }
-  if(!canPlace(piece.shape,r,c)) {
-    messageEl.textContent = "That spot is blocked. Try another!";
-    return;
-  }
-
-  for(const [dr,dc] of piece.shape) {
-    grid[r+dr][c+dc] = piece.color;
-  }
-  score += piece.shape.length;
-  pieces[selected] = null;
-
-  const fullRows = [];
-  const fullCols = [];
-  for(let i=0;i<SIZE;i++) {
-    if(grid[i].every(Boolean)) fullRows.push(i);
-    if(grid.every(row=>row[i])) fullCols.push(i);
-  }
-
-  for(const r2 of fullRows) {
-    for(let c2=0;c2<SIZE;c2++) grid[r2][c2]=null;
-  }
-  for(const c2 of fullCols) {
-    for(let r2=0;r2<SIZE;r2++) grid[r2][c2]=null;
-  }
-  score += (fullRows.length+fullCols.length)*10;
-  scoreEl.textContent = score;
-
-  if(score>best) {
-    best=score;
-    bestEl.textContent=best;
-    try { localStorage.setItem("blockPopBest",best); } catch(e) {}
-  }
-
-  if(pieces.every(p=>!p)) {
-    pieces=[makePiece(),makePiece(),makePiece()];
-    selected=0;
-  } else if(!pieces[selected]) {
-    selected=pieces.findIndex(p=>p);
-  }
-
-  render();
-
+ });
+}
+function canPlace(p,r,c){
+ return p.shape.every(([dr,dc])=>{
+  const rr=r+dr,cc=c+dc;
+  return rr>=0&&rr<N&&cc>=0&&cc<N&&!grid[rr][cc];
+ });
+}
+function endDrag(){
+ if(!drag)return;
+ const d=drag;drag=null;ghost.style.display='none';clearPreview();
+ if(d.target&&canPlace(d.piece,d.target.r,d.target.c)){
+  d.piece.shape.forEach(([dr,dc])=>grid[d.target.r+dr][d.target.c+dc]=d.piece.color);
+  score+=d.piece.shape.length;
+  pieces[d.i]=null;
+  const fullRows=[];
+  for(let r=0;r<N;r++)if(grid[r].every(Boolean))fullRows.push(r);
+  const fullCols=[];
+  for(let c=0;c<N;c++)if(grid.every(row=>row[c]))fullCols.push(c);
+  fullRows.forEach(r=>grid[r].fill(null));
+  fullCols.forEach(c=>{for(let r=0;r<N;r++)grid[r][c]=null;});
   const cleared=fullRows.length+fullCols.length;
-  messageEl.textContent = cleared
-    ? `Nice! ${cleared} line${cleared>1?"s":""} cleared!`
-    : "Good move! Keep filling the board.";
-
-  if(!pieces.some(p=>p && hasAnyMove(p))) {
-    messageEl.textContent = "Game over! Tap New Game to play again.";
-    pieces=[null,null,null];
-    render();
-  }
+  if(cleared){score+=cleared*10;messageEl.textContent=`Great! Cleared ${cleared} line${cleared===1?'':'s'}!`;}
+  else messageEl.textContent='Nice placement! Grab another block.';
+  if(pieces.every(p=>p===null))pieces=[newPiece(),newPiece(),newPiece()];
+  best=Math.max(best,score);localStorage.setItem('blockpopbest',best);
+  render();
+ }else{
+  document.querySelectorAll('.piece').forEach(el=>el.classList.remove('selected'));
+  messageEl.textContent='Drop the block on an empty space on the grid.';
+ }
 }
-
-function hasAnyMove(piece) {
-  for(let r=0;r<SIZE;r++)
-    for(let c=0;c<SIZE;c++)
-      if(canPlace(piece.shape,r,c)) return true;
-  return false;
-}
-
-document.getElementById("restart").addEventListener("click",newGame);
-newGame();
+window.addEventListener('pointermove',moveDrag);
+window.addEventListener('pointerup',endDrag);
+window.addEventListener('pointercancel',endDrag);
+document.getElementById('restart').addEventListener('click',init);
+init();
 </script>
 </body>
 </html>
